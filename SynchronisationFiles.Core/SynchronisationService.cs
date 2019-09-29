@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SynchronisationFiles.Diagnostics;
+using System;
 using System.IO;
 using System.Linq;
 
@@ -53,7 +54,7 @@ namespace SynchronisationFiles.Core
             }
             catch (Exception ex)
             {
-                throw new Exception("Impossible de créer / ouvrir le dossier principale", ex);
+                throw new Exception("Impossible de créer / ouvrir le dossier principale" + _FirstDirectoryPath);
             }
 
             try
@@ -82,11 +83,11 @@ namespace SynchronisationFiles.Core
                 _IsRunning = true;
 
                 _WatcherFirstDirectory = new FileSystemWatcher(_FirstDirectoryPath);
-                _WatcherFirstDirectory.Created += _Watcher_Created;
+                _WatcherFirstDirectory.Created += _Watcher_Created_First;
                 _WatcherFirstDirectory.EnableRaisingEvents = true;
 
                 _WatcherSecondDirectory = new FileSystemWatcher(_SecondDirectoryPath);
-                _WatcherSecondDirectory.Created += _Watcher_Created;
+                _WatcherSecondDirectory.Created += _Watcher_Created_Second;
                 _WatcherSecondDirectory.EnableRaisingEvents = true;
             }
         }
@@ -140,22 +141,38 @@ namespace SynchronisationFiles.Core
         #region Core fx
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire d'entrée.
+        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire principale.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
-        private void _Watcher_Created(object sender, FileSystemEventArgs e)
+        private void _Watcher_Created_First(object sender, FileSystemEventArgs e)
         {
-            // TODO Créer un logger (M2I Diagnostics)
             Loggers.WriteInformation("Nouveau fichier : " + e.FullPath);
             try
             {
-                //Loggers.WriteInformation("Ouverture du fichier.");
-                //FileStream fileStream = OpenFileAndWaitIfNeeded(e.FullPath);
-
                 // TODO Synchronisation des fichiers
-                
-                fileStream.Dispose();
+
+                //Copy
+                Loggers.WriteInformation("Copi du fichier vers " + _SecondDirectoryPath);
+                File.Copy(e.FullPath, _SecondDirectoryPath +"\\"+ e.Name, true);
+            }
+            catch (Exception ex)
+            {
+                Loggers.WriteError(ex.ToString());
+            }
+        }
+
+        /// <summary>
+        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire secondaire.
+        /// </summary>
+        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
+        /// <param name="e">Argument des événements.</param>
+        private void _Watcher_Created_Second(object sender, FileSystemEventArgs e)
+        {
+            Loggers.WriteInformation("Nouveau fichier : " + e.FullPath);
+            try
+            {
+                // TODO Synchronisation des fichiers
             }
             catch (Exception ex)
             {
@@ -182,7 +199,7 @@ namespace SynchronisationFiles.Core
                     fileStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
                     isFileBusy = false; //Si on arrive à ouvrir, le fichier est accessible
                 }
-                catch (IOException ex)
+                catch (IOException)
                 {
                     //Si on a une erreur d'IO, c'est que le fichier est encore ouvert
                     System.Threading.Thread.Sleep(200);

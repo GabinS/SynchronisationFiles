@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SynchronisationFiles.Loggers
+namespace SynchronisationFiles.Diagnostics
 {
     /// <summary>
     /// Journal de type console.

@@ -1,38 +1,40 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace SynchronisationFiles.Loggers
+namespace SynchronisationFiles.Diagnostics
 {
     /// <summary>
-    /// Classe de base pour un journal de type <see cref="ILogger"/>.
+    /// Fournit un mécanisme pour l'écriture dans un journal.
     /// </summary>
-    public abstract class Logger : ILogger
+    public interface ILogger
     {
         #region Properties
 
         /// <summary>
         /// Obtient le nom du journal.
         /// </summary>
-        public string Name { get; set; }
+        string Name { get; set; }
 
         /// <summary>
         /// Obtient la source du journal.
         /// </summary>
-        public string Source { get; set; }
+        string Source { get; set; }
 
         /// <summary>
         /// Obtient ou définit si les informations sont désactivées.
         /// </summary>
-        public bool IsInformationBypassed { get; set; }
+        bool IsInformationBypassed { get; set; }
 
         /// <summary>
         /// Obtient ou définit si les avertissements sont désactivées.
         /// </summary>
-        public bool IsWarningBypassed { get; set; }
+        bool IsWarningBypassed { get; set; }
 
         /// <summary>
         /// Obtient ou définit si les erreurs sont désactivées.
         /// </summary>
-        public bool IsErrorBypassed { get; set; }
+        bool IsErrorBypassed { get; set; }
 
         #endregion
 
@@ -42,19 +44,19 @@ namespace SynchronisationFiles.Loggers
         /// Ecrit une information dans le journal.
         /// </summary>
         /// <param name="message">Information à écrire dans le journal.</param>
-        public abstract void WriteInformation(string message);
+        void WriteInformation(string message);
 
         /// <summary>
         /// Ecrit un avertissement dans le journal.
         /// </summary>
         /// <param name="message">Avertissement à écrire dans le journal.</param>
-        public abstract void WriteWarning(string message);
+        void WriteWarning(string message);
 
         /// <summary>
         /// Ecrit une erreur dans le journal.
         /// </summary>
         /// <param name="message">Erreur à écrire dans le journal.</param>
-        public abstract void WriteError(string message);
+        void WriteError(string message);
 
         #endregion
     }

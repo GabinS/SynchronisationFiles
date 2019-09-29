@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SynchronisationFiles.Loggers
+namespace SynchronisationFiles.Diagnostics
 {
+    /// <summary>
+    /// Aggrégateur de journaux. Permet d'écrire simultanément dans plusieurs journaux.
+    /// </summary>
     public class Loggers
     {
         #region Fields
