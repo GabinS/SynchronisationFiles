@@ -104,19 +104,24 @@ namespace SynchronisationFiles.Core
                 _IsRunning = true;
 
                 _WatcherFirstDirectory = new FileSystemWatcher(_SourceDirectoryPath);
-                _WatcherFirstDirectory.Created += _Watcher_Created_Source;
+                _WatcherFirstDirectory.Created += _Watcher_Created;
+                _WatcherFirstDirectory.Renamed += _Watcher_Renamed;
+                _WatcherFirstDirectory.Deleted += _Watcher_Deleted;
                 _WatcherFirstDirectory.EnableRaisingEvents = true;
 
-                if (_SynchronisationMethode != "OneWay")
-                {
-                    _WatcherSecondDirectory = new FileSystemWatcher(_TargetDirectoryPath);
-                    _WatcherSecondDirectory.Created += _Watcher_Created_Target;
-                    _WatcherSecondDirectory.EnableRaisingEvents = true;
-                }
+                //if (_SynchronisationMethode != "OneWay")
+                //{
+                _WatcherSecondDirectory = new FileSystemWatcher(_TargetDirectoryPath);
+                _WatcherSecondDirectory.Created += _Watcher_Created;
+                _WatcherSecondDirectory.Renamed += _Watcher_Renamed;
+                _WatcherSecondDirectory.Deleted += _Watcher_Deleted;
+                _WatcherSecondDirectory.EnableRaisingEvents = true;
+                //}
 
                 InitialiseSyncrhonisationFolder();
             }
         }
+
 
         /// <summary>
         /// Arrête le service.
@@ -171,7 +176,7 @@ namespace SynchronisationFiles.Core
         /// </summary>
         private void InitialiseSyncrhonisationFolder()
         {
-
+            //TODO Initialisation
         }
 
         /// <summary>
@@ -179,38 +184,70 @@ namespace SynchronisationFiles.Core
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
-        private void _Watcher_Created_Source(object sender, FileSystemEventArgs e)
+        private void _Watcher_Created(object sender, FileSystemEventArgs e)
         {
-            Loggers.WriteInformation("Nouveau fichier : " + e.FullPath);
-            try
-            {
-                // TODO Synchronisation des fichiers
+            string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
 
-                //Copy
-                Loggers.WriteInformation("Copi du fichier vers " + _TargetDirectoryPath);
-                File.Copy(e.FullPath, _TargetDirectoryPath +"\\"+ e.Name, true);
-            }
-            catch (Exception ex)
+            if (!File.Exists(targetDirectory + "\\" + e.Name))
             {
-                Loggers.WriteError(ex.ToString());
+                Loggers.WriteInformation("Nouveau fichier : " + e.FullPath);
+                try
+                {
+                    Loggers.WriteInformation("Copie du fichier vers " + targetDirectory);
+                    File.Copy(e.FullPath, targetDirectory + "\\" + e.Name, true);
+                }
+                catch (Exception ex)
+                {
+                    Loggers.WriteError(ex.ToString());
+                }
             }
         }
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire cible.
+        /// Méthode appelée lorsqu'un fichier est renommé dans le répertoire source.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
-        private void _Watcher_Created_Target(object sender, FileSystemEventArgs e)
+        private void _Watcher_Renamed(object sender, RenamedEventArgs e)
         {
-            Loggers.WriteInformation("Nouveau fichier : " + e.FullPath);
-            try
+            string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
+
+            if (!File.Exists(targetDirectory + "\\" + e.Name))
             {
-                // TODO Synchronisation des fichiers
+                Loggers.WriteInformation("fichier renommer: " + e.FullPath);
+                try
+                {
+                    Loggers.WriteInformation("Renomage du fichier " + e.OldName + " en " + e.Name + " dans " + targetDirectory);
+                    File.Move(targetDirectory + "\\" + e.OldName, targetDirectory + "\\" + e.Name);
+                }
+                catch (Exception ex)
+                {
+                    Loggers.WriteError(ex.ToString());
+                }
             }
-            catch (Exception ex)
+        }
+
+        /// <summary>
+        /// Méthode appelée lorsqu'un fichier est supprimé dans le répertoire source.
+        /// </summary>
+        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
+        /// <param name="e">Argument des événements.</param>
+        private void _Watcher_Deleted(object sender, FileSystemEventArgs e)
+        {
+            string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
+
+            if (!File.Exists(targetDirectory + "\\" + e.Name))
             {
-                Loggers.WriteError(ex.ToString());
+                Loggers.WriteInformation("fichier supprimé: " + e.FullPath);
+                try
+                {
+                    Loggers.WriteInformation("Suppression du fichier " + e.Name + " dans " + targetDirectory);
+                    File.Delete(targetDirectory + "\\" + e.Name);
+                }
+                catch (Exception ex)
+                {
+                    Loggers.WriteError(ex.ToString());
+                }
             }
         }
 

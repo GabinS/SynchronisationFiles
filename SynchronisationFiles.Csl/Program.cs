@@ -24,6 +24,7 @@ namespace SynchronisationFiles.Csl
                 service.Start();
 
                 Loggers.WriteInformation($"Ecoute du répertoire {SourceDirectoryPath}");
+                Loggers.WriteInformation($"Ecoute du répertoire {TargetDirectoryPath}");
                 Console.ReadLine();
                 Loggers.WriteInformation($"Fin du programme.");
 
