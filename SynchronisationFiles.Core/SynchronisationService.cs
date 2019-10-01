@@ -18,13 +18,17 @@ namespace SynchronisationFiles.Core
         /// </summary>
         private bool _IsPaused;
         /// <summary>
-        /// Dossier d'entrée des images à redimensionner.
+        /// Premier  dossier à synchroniser.
         /// </summary>
-        private string _FirstDirectoryPath;
+        private string _SourceDirectoryPath;
         /// <summary>
-        /// Dossier dans lequel sauvegarder les images redimensionnées.
+        /// Second dossier à synchroniser.
         /// </summary>
-        private string _SecondDirectoryPath;
+        private string _TargetDirectoryPath;
+        /// <summary>
+        /// Methode de synchronisation
+        /// </summary>
+        private string _SynchronisationMethode;
         /// <summary>
         /// Ecouteur du répertoire principale.
         /// </summary>
@@ -41,29 +45,46 @@ namespace SynchronisationFiles.Core
         /// <summary>
         /// Initialise une nouvelle instance de la classe <see cref="SynchronisationService"/>.
         /// </summary>
-        /// <param name="FirstDirectoryPath">Dossier principale des fichiers à synchroniser.</param>
-        /// <param name="SecondDirectoryPath">Dossier secondaire des fichiers à synchroniser.</param>
-        public SynchronisationService(string FirstDirectoryPath, string SecondDirectoryPath)
+        /// <param name="SourceDirectoryPath">Dossier principale des fichiers à synchroniser.</param>
+        /// <param name="TargetDirectoryPath">Dossier secondaire des fichiers à synchroniser.</param>
+        public SynchronisationService(string SourceDirectoryPath, string TargetDirectoryPath, string SynchronisationMethode)
         {
-            _FirstDirectoryPath = FirstDirectoryPath;
-            _SecondDirectoryPath = SecondDirectoryPath;
+
+            _SynchronisationMethode = SynchronisationMethode;
+
+            switch (_SynchronisationMethode)
+            {
+                case "TwoWaySourceWon":
+                    _SourceDirectoryPath = SourceDirectoryPath;
+                    _TargetDirectoryPath = TargetDirectoryPath;
+                    break;
+
+                case "TwoWayTargetWon":
+                    _SourceDirectoryPath = TargetDirectoryPath;
+                    _TargetDirectoryPath = SourceDirectoryPath;
+                    break;
+                default:
+                    _SourceDirectoryPath = SourceDirectoryPath;
+                    _TargetDirectoryPath = TargetDirectoryPath;
+                    break;
+            }
 
             try
             {
-                Directory.CreateDirectory(_FirstDirectoryPath);
+                Directory.CreateDirectory(_SourceDirectoryPath);
             }
             catch (Exception ex)
             {
-                throw new Exception("Impossible de créer / ouvrir le dossier principale" + _FirstDirectoryPath);
+                throw new Exception("Impossible de créer / ouvrir le dossier source" + _SourceDirectoryPath, ex);
             }
 
             try
             {
-                Directory.CreateDirectory(_SecondDirectoryPath);
+                Directory.CreateDirectory(_TargetDirectoryPath);
             }
             catch (Exception ex)
             {
-                throw new Exception("Impossible de créer / ouvrir le dossier secondaire", ex);
+                throw new Exception("Impossible de créer / ouvrir le dossier cible" + _TargetDirectoryPath, ex);
             }
         }
 
@@ -82,13 +103,18 @@ namespace SynchronisationFiles.Core
             {
                 _IsRunning = true;
 
-                _WatcherFirstDirectory = new FileSystemWatcher(_FirstDirectoryPath);
-                _WatcherFirstDirectory.Created += _Watcher_Created_First;
+                _WatcherFirstDirectory = new FileSystemWatcher(_SourceDirectoryPath);
+                _WatcherFirstDirectory.Created += _Watcher_Created_Source;
                 _WatcherFirstDirectory.EnableRaisingEvents = true;
 
-                _WatcherSecondDirectory = new FileSystemWatcher(_SecondDirectoryPath);
-                _WatcherSecondDirectory.Created += _Watcher_Created_Second;
-                _WatcherSecondDirectory.EnableRaisingEvents = true;
+                if (_SynchronisationMethode != "OneWay")
+                {
+                    _WatcherSecondDirectory = new FileSystemWatcher(_TargetDirectoryPath);
+                    _WatcherSecondDirectory.Created += _Watcher_Created_Target;
+                    _WatcherSecondDirectory.EnableRaisingEvents = true;
+                }
+
+                InitialiseSyncrhonisationFolder();
             }
         }
 
@@ -141,11 +167,19 @@ namespace SynchronisationFiles.Core
         #region Core fx
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire principale.
+        /// Syncrhonise les deux répertoires en fonction de la méthode de synchronisation
+        /// </summary>
+        private void InitialiseSyncrhonisationFolder()
+        {
+
+        }
+
+        /// <summary>
+        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire source.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
-        private void _Watcher_Created_First(object sender, FileSystemEventArgs e)
+        private void _Watcher_Created_Source(object sender, FileSystemEventArgs e)
         {
             Loggers.WriteInformation("Nouveau fichier : " + e.FullPath);
             try
@@ -153,8 +187,8 @@ namespace SynchronisationFiles.Core
                 // TODO Synchronisation des fichiers
 
                 //Copy
-                Loggers.WriteInformation("Copi du fichier vers " + _SecondDirectoryPath);
-                File.Copy(e.FullPath, _SecondDirectoryPath +"\\"+ e.Name, true);
+                Loggers.WriteInformation("Copi du fichier vers " + _TargetDirectoryPath);
+                File.Copy(e.FullPath, _TargetDirectoryPath +"\\"+ e.Name, true);
             }
             catch (Exception ex)
             {
@@ -163,11 +197,11 @@ namespace SynchronisationFiles.Core
         }
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire secondaire.
+        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire cible.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
-        private void _Watcher_Created_Second(object sender, FileSystemEventArgs e)
+        private void _Watcher_Created_Target(object sender, FileSystemEventArgs e)
         {
             Loggers.WriteInformation("Nouveau fichier : " + e.FullPath);
             try

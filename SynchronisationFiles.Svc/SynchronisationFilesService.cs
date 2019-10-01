@@ -42,8 +42,8 @@ namespace SynchronisationFiles.Svc
         {
             try
             {
-                string inputDir = ConfigurationManager.AppSettings["InputDirectoryPath"]; ;
-                string outputDir = ConfigurationManager.AppSettings["OutputDirectoryPath"];
+                string inputDir = ConfigurationManager.AppSettings["SourceDirectoryPath"];
+                string outputDir = ConfigurationManager.AppSettings["TargetDirectoryPath"];
 
                 Loggers.WriteInformation(
                 $"Démarrage du service{Environment.NewLine}input = {inputDir}{Environment.NewLine}output = {outputDir}");
