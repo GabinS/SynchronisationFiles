@@ -189,13 +189,15 @@ namespace SynchronisationFiles.Core
         {
             string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
 
-            if (!File.Exists(targetDirectory + "\\" + e.Name))
+            if (!File.Exists($"{targetDirectory}\\{e.Name}"))
             {
-                Loggers.WriteInformation("Nouveau fichier : " + e.FullPath);
+                Loggers.WriteInformation($"Fichier créé : {e.FullPath}");
                 try
                 {
-                    Loggers.WriteInformation("Copie du fichier vers " + targetDirectory);
-                    File.Copy(e.FullPath, targetDirectory + "\\" + e.Name, true);
+                    InactivateWatchers();
+                    Loggers.WriteInformation($"Copie du fichier '{e.Name}' vers {targetDirectory}");
+                    File.Copy(e.FullPath, $"{targetDirectory}\\{e.Name}", true);
+                    ActivateWatchers();
                 }
                 catch (Exception ex)
                 {
@@ -213,13 +215,13 @@ namespace SynchronisationFiles.Core
         {
             string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
 
-            if (File.Exists(targetDirectory + "\\" + e.Name))
+            if (File.Exists($"{targetDirectory}\\{e.OldName}"))
             {
-                Loggers.WriteInformation("fichier renommer: " + e.FullPath);
+                Loggers.WriteInformation($"Fichier renommé: {e.FullPath}");
                 try
                 {
-                    Loggers.WriteInformation("Renomage du fichier " + e.OldName + " en " + e.Name + " dans " + targetDirectory);
-                    File.Move(targetDirectory + "\\" + e.OldName, targetDirectory + "\\" + e.Name);
+                    Loggers.WriteInformation($"Renomage du fichier '{e.OldName}' en '{e.Name}' dans {targetDirectory}");
+                    File.Move($"{targetDirectory}\\{e.OldName}", $"{targetDirectory}\\{e.Name}");
                 }
                 catch (Exception ex)
                 {
@@ -237,13 +239,13 @@ namespace SynchronisationFiles.Core
         {
             string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
 
-            if (File.Exists(targetDirectory + "\\" + e.Name))
+            if (File.Exists($"{targetDirectory}\\{e.Name}"))
             {
-                Loggers.WriteInformation("fichier supprimé: " + e.FullPath);
+                Loggers.WriteInformation($"Fichier supprimé: {e.FullPath}");
                 try
                 {
-                    Loggers.WriteInformation("Suppression du fichier " + e.Name + " dans " + targetDirectory);
-                    File.Delete(targetDirectory + "\\" + e.Name);
+                    Loggers.WriteInformation($"Suppression du fichier '{e.Name}' dans {targetDirectory}");
+                    File.Delete($"{targetDirectory}\\{e.Name}");
                 }
                 catch (Exception ex)
                 {
@@ -261,13 +263,16 @@ namespace SynchronisationFiles.Core
         {
             string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
 
-            if (File.Exists(targetDirectory + "\\" + e.Name))
+            if (File.Exists($"{targetDirectory}\\{e.Name}"))
             {
-                Loggers.WriteInformation("fichier modifié: " + e.FullPath);
+                Loggers.WriteInformation($"Fichier modifié: {e.FullPath}");
                 try
                 {
-                    Loggers.WriteInformation("Modification du fichier " + e.Name + " dans " + targetDirectory);
-                    //TODO modif
+                    InactivateWatchers();
+                    Loggers.WriteInformation($"Modification du fichier '{e.Name}' dans {targetDirectory}");
+                    File.Delete($"{targetDirectory}\\{e.Name}");
+                    File.Copy(e.FullPath, $"{targetDirectory}\\{e.Name}");
+                    ActivateWatchers();
                 }
                 catch (Exception ex)
                 {
@@ -321,17 +326,17 @@ namespace SynchronisationFiles.Core
         /// </summary>
         private void ActivateWatchers()
         {
-            _WatcherSourceDirectory.EnableRaisingEvents = true;
-            _WatcherTargetDirectory.EnableRaisingEvents = true;
+            if(!_WatcherSourceDirectory.EnableRaisingEvents) { _WatcherSourceDirectory.EnableRaisingEvents = true; }
+            if (!_WatcherTargetDirectory.EnableRaisingEvents) { _WatcherTargetDirectory.EnableRaisingEvents = true; }
         }
 
         /// <summary>
-        /// Active l'écoute des répertoires afin d'activer les événements
+        /// Inactive l'écoute des répertoires afin d'activer les événements
         /// </summary>
         private void InactivateWatchers()
         {
-            _WatcherSourceDirectory.EnableRaisingEvents = true;
-            _WatcherTargetDirectory.EnableRaisingEvents = true;
+            if (_WatcherSourceDirectory.EnableRaisingEvents) { _WatcherSourceDirectory.EnableRaisingEvents = false; }
+            if (_WatcherTargetDirectory.EnableRaisingEvents) { _WatcherTargetDirectory.EnableRaisingEvents = false; }
         }
 
         #endregion
