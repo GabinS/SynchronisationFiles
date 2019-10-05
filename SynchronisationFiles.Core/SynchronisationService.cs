@@ -108,6 +108,7 @@ namespace SynchronisationFiles.Core
                 _WatcherSourceDirectory.Renamed += _Watcher_Renamed;
                 _WatcherSourceDirectory.Deleted += _Watcher_Deleted;
                 _WatcherSourceDirectory.Changed += _Watcher_Changed;
+                _WatcherSourceDirectory.IncludeSubdirectories = true;
                 _WatcherSourceDirectory.EnableRaisingEvents = true;
 
                 if (_SynchronisationMethode != "OneWay")
@@ -117,6 +118,7 @@ namespace SynchronisationFiles.Core
                     _WatcherTargetDirectory.Renamed += _Watcher_Renamed;
                     _WatcherTargetDirectory.Deleted += _Watcher_Deleted;
                     _WatcherTargetDirectory.Changed += _Watcher_Changed;
+                    _WatcherTargetDirectory.IncludeSubdirectories = true;
                     _WatcherTargetDirectory.EnableRaisingEvents = true;
                 }
 
@@ -181,77 +183,151 @@ namespace SynchronisationFiles.Core
         }
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire.
+        /// Méthode appelée lorsqu'un fichier ou dossier est créé dans le répertoire.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
         private void _Watcher_Created(object sender, FileSystemEventArgs e)
         {
-            string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
+            string targetDirectory = GetCurrentTagetDirectory(sender, e);
 
-            if (!File.Exists($"{targetDirectory}\\{e.Name}"))
+            //Si c'est un dossier
+            if (Path.GetExtension(e.FullPath) == String.Empty)
             {
-                Loggers.WriteInformation($"Fichier créé : {e.FullPath}");
-                try
+                if (!Directory.Exists($"{targetDirectory}\\{e.Name}"))
                 {
-                    InactivateWatchers();
-                    Loggers.WriteInformation($"Copie du fichier '{e.Name}' vers {targetDirectory}");
-                    File.Copy(e.FullPath, $"{targetDirectory}\\{e.Name}", true);
-                    ActivateWatchers();
-                }
-                catch (Exception ex)
-                {
-                    Loggers.WriteError(ex.ToString());
+                    try
+                    {
+                        Loggers.WriteInformation($"Dossier créé : {e.FullPath}");
+                        InactivateWatchers();
+                        Loggers.WriteInformation($"Copie du dossier '{e.Name}' vers {targetDirectory}");
+                        Directory.CreateDirectory($"{targetDirectory}\\{e.Name}");
+                        ActivateWatchers();
+                        
+                    }
+                    catch (Exception ex)
+                    {
+                        Loggers.WriteError(ex.ToString());
+                    }
                 }
             }
+            else
+            {
+                if (!File.Exists($"{targetDirectory}\\{e.Name}"))
+                {
+                    try
+                    {
+                        Loggers.WriteInformation($"Fichier créé : {e.FullPath}");
+                        InactivateWatchers();
+                        Loggers.WriteInformation($"Copie du fichier '{e.Name}' vers {targetDirectory}");
+                        File.Copy(e.FullPath, $"{targetDirectory}\\{e.Name}");
+                        ActivateWatchers();
+                    }
+                    catch (Exception ex)
+                    {
+                        Loggers.WriteError(ex.ToString());
+                    }
+                }
+            }
+            
         }
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est renommé dans le répertoire.
+        /// Méthode appelée lorsqu'un fichier ou dossier est renommé dans le répertoire.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
         private void _Watcher_Renamed(object sender, RenamedEventArgs e)
         {
-            string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
+            string targetDirectory = GetCurrentTagetDirectory(sender, e);
 
-            if (File.Exists($"{targetDirectory}\\{e.OldName}"))
+            //Si c'est un dossier
+            if (Path.GetExtension(e.FullPath) == String.Empty)
             {
-                Loggers.WriteInformation($"Fichier renommé: {e.FullPath}");
-                try
+                if (Directory.Exists($"{targetDirectory}\\{e.OldName}"))
                 {
-                    Loggers.WriteInformation($"Renomage du fichier '{e.OldName}' en '{e.Name}' dans {targetDirectory}");
-                    File.Move($"{targetDirectory}\\{e.OldName}", $"{targetDirectory}\\{e.Name}");
-                }
-                catch (Exception ex)
-                {
-                    Loggers.WriteError(ex.ToString());
+                    try
+                    {
+                        Loggers.WriteInformation($"Dossier renommé: {e.FullPath}");
+                        Loggers.WriteInformation($"Renomage du dossier '{e.OldName}' en '{e.Name}' dans {targetDirectory}");
+                        Directory.Move($"{targetDirectory}\\{e.OldName}", $"{targetDirectory}\\{e.Name}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Loggers.WriteError(ex.ToString());
+                    }
                 }
             }
+            else
+            {
+                if (File.Exists($"{targetDirectory}\\{e.OldName}"))
+                {
+                    try
+                    {
+                        Loggers.WriteInformation($"Fichier renommé: {e.FullPath}");
+                        Loggers.WriteInformation($"Renomage du fichier '{e.OldName}' en '{e.Name}' dans {targetDirectory}");
+                        File.Move($"{targetDirectory}\\{e.OldName}", $"{targetDirectory}\\{e.Name}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Loggers.WriteError(ex.ToString());
+                    }
+                }
+            }
+                
         }
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est supprimé dans le répertoire.
+        /// Méthode appelée lorsqu'un fichier ou dossier est supprimé dans le répertoire.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
         private void _Watcher_Deleted(object sender, FileSystemEventArgs e)
         {
-            string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
+            string targetDirectory = GetCurrentTagetDirectory(sender, e);
 
-            if (File.Exists($"{targetDirectory}\\{e.Name}"))
+            //Si c'est un dossier
+            if (Path.GetExtension(e.FullPath) == String.Empty)
             {
-                Loggers.WriteInformation($"Fichier supprimé: {e.FullPath}");
-                try
+                if (Directory.Exists($"{targetDirectory}\\{e.Name}"))
                 {
-                    Loggers.WriteInformation($"Suppression du fichier '{e.Name}' dans {targetDirectory}");
-                    File.Delete($"{targetDirectory}\\{e.Name}");
-                }
-                catch (Exception ex)
-                {
-                    Loggers.WriteError(ex.ToString());
+                    try
+                    {
+                        Loggers.WriteInformation($"Dossier supprimé: {e.FullPath}");
+                        Loggers.WriteInformation($"Suppression du dossier '{e.Name}' dans {targetDirectory}");
+                        DirectoryInfo directory = new DirectoryInfo($"{targetDirectory}\\{e.Name}");
+
+                        //Vide le contenue du dossier target avant de le supprimer
+                        directory.GetFiles().ToList().ForEach(f => f.Delete());
+                        directory.GetDirectories().ToList().ForEach(d => d.Delete(true));
+
+                        Directory.Delete($"{targetDirectory}\\{e.Name}");
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Loggers.WriteError(ex.ToString());
+                    }
                 }
             }
+            else
+            {
+                if (File.Exists($"{targetDirectory}\\{e.Name}"))
+                {
+                    try
+                    {
+                        Loggers.WriteInformation($"Fichier supprimé: {e.FullPath}");
+                        Loggers.WriteInformation($"Suppression du fichier '{e.Name}' dans {targetDirectory}");
+                        File.Delete($"{targetDirectory}\\{e.Name}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Loggers.WriteError(ex.ToString());
+                    }
+                }
+            }
+
+            
         }
 
         /// <summary>
@@ -261,7 +337,7 @@ namespace SynchronisationFiles.Core
         /// <param name="e">Argument des événements.</param>
         private void _Watcher_Changed(object sender, FileSystemEventArgs e)
         {
-            string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
+            string targetDirectory = GetCurrentTagetDirectory(sender, e);
 
             if (File.Exists($"{targetDirectory}\\{e.Name}"))
             {
@@ -281,46 +357,6 @@ namespace SynchronisationFiles.Core
             }
         }
 
-
-        /// <summary>
-        /// Ouvre un fichier avec attente si le fichier n'est pas disponible.
-        /// </summary>
-        /// <param name="filePath">Chemin du fichier à ouvrir.</param>
-        /// <returns>Flux du fichier ouvert.</returns>
-        private FileStream OpenFileAndWaitIfNeeded(string filePath)
-        {
-            bool isFileBusy = true;
-            FileStream fileStream = null;
-
-            DateTime startDateTime = DateTime.Now;
-
-            do
-            {
-                try
-                {
-                    fileStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-                    isFileBusy = false; //Si on arrive à ouvrir, le fichier est accessible
-                }
-                catch (IOException)
-                {
-                    //Si on a une erreur d'IO, c'est que le fichier est encore ouvert
-                    System.Threading.Thread.Sleep(200);
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("Erreur à l'ouverture du fichier", ex);
-                }
-
-                if (DateTime.Now > startDateTime.AddMinutes(15))
-                {
-                    throw new Exception("Délai d'attente dépassé, impossible d'ouvrir le fichier.");
-                }
-
-            } while (isFileBusy);
-
-            return fileStream;
-        }
-
         /// <summary>
         /// Active l'écoute des répertoires afin d'activer les événements
         /// </summary>
@@ -337,6 +373,30 @@ namespace SynchronisationFiles.Core
         {
             if (_WatcherSourceDirectory.EnableRaisingEvents) { _WatcherSourceDirectory.EnableRaisingEvents = false; }
             if (_WatcherTargetDirectory.EnableRaisingEvents) { _WatcherTargetDirectory.EnableRaisingEvents = false; }
+        }
+
+        /// <summary>
+        /// Retourne le chemin complet du repertoire ciblé
+        /// </summary>
+        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
+        /// <param name="e">Argument des événements.</param>
+        /// <returns>Chemin complet du répertoire cible</returns>
+        private string GetCurrentTagetDirectory(object sender, RenamedEventArgs e)
+        {
+            string path = e.FullPath.Replace($"\\{e.Name}", "");
+            return sender == _WatcherSourceDirectory ? path.Replace(_SourceDirectoryPath, _TargetDirectoryPath) : path.Replace(_TargetDirectoryPath, _SourceDirectoryPath);
+        }
+
+        /// <summary>
+        /// Retourne le chemin complet du repertoire ciblé
+        /// </summary>
+        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
+        /// <param name="e">Argument des événements.</param>
+        /// <returns>Chemin complet du répertoire cible</returns>
+        private string GetCurrentTagetDirectory(object sender, FileSystemEventArgs e)
+        {
+            string path = e.FullPath.Replace($"\\{e.Name}", "");
+            return sender == _WatcherSourceDirectory ? path.Replace(_SourceDirectoryPath, _TargetDirectoryPath) : path.Replace(_TargetDirectoryPath, _SourceDirectoryPath);
         }
 
         #endregion
