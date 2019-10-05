@@ -32,11 +32,11 @@ namespace SynchronisationFiles.Core
         /// <summary>
         /// Ecouteur du répertoire principale.
         /// </summary>
-        private FileSystemWatcher _WatcherFirstDirectory;
+        private FileSystemWatcher _WatcherSourceDirectory;
         /// <summary>
         /// Ecouteur du répertoire secondaire.
         /// </summary>
-        private FileSystemWatcher _WatcherSecondDirectory;
+        private FileSystemWatcher _WatcherTargetDirectory;
 
         #endregion
 
@@ -103,25 +103,26 @@ namespace SynchronisationFiles.Core
             {
                 _IsRunning = true;
 
-                _WatcherFirstDirectory = new FileSystemWatcher(_SourceDirectoryPath);
-                _WatcherFirstDirectory.Created += _Watcher_Created;
-                _WatcherFirstDirectory.Renamed += _Watcher_Renamed;
-                _WatcherFirstDirectory.Deleted += _Watcher_Deleted;
-                _WatcherFirstDirectory.EnableRaisingEvents = true;
+                _WatcherSourceDirectory = new FileSystemWatcher(_SourceDirectoryPath);
+                _WatcherSourceDirectory.Created += _Watcher_Created;
+                _WatcherSourceDirectory.Renamed += _Watcher_Renamed;
+                _WatcherSourceDirectory.Deleted += _Watcher_Deleted;
+                _WatcherSourceDirectory.Changed += _Watcher_Changed;
+                _WatcherSourceDirectory.EnableRaisingEvents = true;
 
-                //if (_SynchronisationMethode != "OneWay")
-                //{
-                _WatcherSecondDirectory = new FileSystemWatcher(_TargetDirectoryPath);
-                _WatcherSecondDirectory.Created += _Watcher_Created;
-                _WatcherSecondDirectory.Renamed += _Watcher_Renamed;
-                _WatcherSecondDirectory.Deleted += _Watcher_Deleted;
-                _WatcherSecondDirectory.EnableRaisingEvents = true;
-                //}
+                if (_SynchronisationMethode != "OneWay")
+                {
+                    _WatcherTargetDirectory = new FileSystemWatcher(_TargetDirectoryPath);
+                    _WatcherTargetDirectory.Created += _Watcher_Created;
+                    _WatcherTargetDirectory.Renamed += _Watcher_Renamed;
+                    _WatcherTargetDirectory.Deleted += _Watcher_Deleted;
+                    _WatcherTargetDirectory.Changed += _Watcher_Changed;
+                    _WatcherTargetDirectory.EnableRaisingEvents = true;
+                }
 
                 InitialiseSyncrhonisationFolder();
             }
         }
-
 
         /// <summary>
         /// Arrête le service.
@@ -130,11 +131,11 @@ namespace SynchronisationFiles.Core
         {
             if (_IsRunning)
             {
-                _WatcherFirstDirectory.Dispose();
-                _WatcherFirstDirectory = null;
+                _WatcherSourceDirectory.Dispose();
+                _WatcherSourceDirectory = null;
 
-                _WatcherSecondDirectory.Dispose();
-                _WatcherSecondDirectory = null;
+                _WatcherTargetDirectory.Dispose();
+                _WatcherTargetDirectory = null;
 
                 _IsRunning = false;
                 _IsPaused = false;
@@ -149,8 +150,8 @@ namespace SynchronisationFiles.Core
             if (_IsRunning && !_IsPaused)
             {
                 _IsPaused = true;
-                _WatcherFirstDirectory.EnableRaisingEvents = false;
-                _WatcherSecondDirectory.EnableRaisingEvents = false;
+                _WatcherSourceDirectory.EnableRaisingEvents = false;
+                _WatcherTargetDirectory.EnableRaisingEvents = false;
             }
         }
 
@@ -161,8 +162,8 @@ namespace SynchronisationFiles.Core
         {
             if (_IsRunning && _IsPaused)
             {
-                _WatcherFirstDirectory.EnableRaisingEvents = true;
-                _WatcherSecondDirectory.EnableRaisingEvents = true;
+                _WatcherSourceDirectory.EnableRaisingEvents = true;
+                _WatcherTargetDirectory.EnableRaisingEvents = true;
                 _IsPaused = false;
             }
         }
@@ -180,7 +181,7 @@ namespace SynchronisationFiles.Core
         }
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire source.
+        /// Méthode appelée lorsqu'un fichier est créé dans le répertoire.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
@@ -204,7 +205,7 @@ namespace SynchronisationFiles.Core
         }
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est renommé dans le répertoire source.
+        /// Méthode appelée lorsqu'un fichier est renommé dans le répertoire.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
@@ -212,7 +213,7 @@ namespace SynchronisationFiles.Core
         {
             string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
 
-            if (!File.Exists(targetDirectory + "\\" + e.Name))
+            if (File.Exists(targetDirectory + "\\" + e.Name))
             {
                 Loggers.WriteInformation("fichier renommer: " + e.FullPath);
                 try
@@ -228,7 +229,7 @@ namespace SynchronisationFiles.Core
         }
 
         /// <summary>
-        /// Méthode appelée lorsqu'un fichier est supprimé dans le répertoire source.
+        /// Méthode appelée lorsqu'un fichier est supprimé dans le répertoire.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
         /// <param name="e">Argument des événements.</param>
@@ -236,7 +237,7 @@ namespace SynchronisationFiles.Core
         {
             string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
 
-            if (!File.Exists(targetDirectory + "\\" + e.Name))
+            if (File.Exists(targetDirectory + "\\" + e.Name))
             {
                 Loggers.WriteInformation("fichier supprimé: " + e.FullPath);
                 try
@@ -250,6 +251,31 @@ namespace SynchronisationFiles.Core
                 }
             }
         }
+
+        /// <summary>
+        /// Méthode appelée lorsqu'un fichier est modifier dans le répertoire.
+        /// </summary>
+        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
+        /// <param name="e">Argument des événements.</param>
+        private void _Watcher_Changed(object sender, FileSystemEventArgs e)
+        {
+            string targetDirectory = e.FullPath.Contains(this._SourceDirectoryPath) ? _TargetDirectoryPath : _SourceDirectoryPath;
+
+            if (File.Exists(targetDirectory + "\\" + e.Name))
+            {
+                Loggers.WriteInformation("fichier modifié: " + e.FullPath);
+                try
+                {
+                    Loggers.WriteInformation("Modification du fichier " + e.Name + " dans " + targetDirectory);
+                    //TODO modif
+                }
+                catch (Exception ex)
+                {
+                    Loggers.WriteError(ex.ToString());
+                }
+            }
+        }
+
 
         /// <summary>
         /// Ouvre un fichier avec attente si le fichier n'est pas disponible.
@@ -288,6 +314,24 @@ namespace SynchronisationFiles.Core
             } while (isFileBusy);
 
             return fileStream;
+        }
+
+        /// <summary>
+        /// Active l'écoute des répertoires afin d'activer les événements
+        /// </summary>
+        private void ActivateWatchers()
+        {
+            _WatcherSourceDirectory.EnableRaisingEvents = true;
+            _WatcherTargetDirectory.EnableRaisingEvents = true;
+        }
+
+        /// <summary>
+        /// Active l'écoute des répertoires afin d'activer les événements
+        /// </summary>
+        private void InactivateWatchers()
+        {
+            _WatcherSourceDirectory.EnableRaisingEvents = true;
+            _WatcherTargetDirectory.EnableRaisingEvents = true;
         }
 
         #endregion

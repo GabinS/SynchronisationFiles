@@ -44,11 +44,12 @@ namespace SynchronisationFiles.Svc
             {
                 string inputDir = ConfigurationManager.AppSettings["SourceDirectoryPath"];
                 string outputDir = ConfigurationManager.AppSettings["TargetDirectoryPath"];
+                string synchronisationMethode = ConfigurationManager.AppSettings["SynchronisationMethode"];
 
                 Loggers.WriteInformation(
                 $"Démarrage du service{Environment.NewLine}input = {inputDir}{Environment.NewLine}output = {outputDir}");
 
-                _Service = new SynchronisationService(inputDir, outputDir);
+                _Service = new SynchronisationService(inputDir, outputDir, synchronisationMethode);
 
                 _Service.Start();
             }

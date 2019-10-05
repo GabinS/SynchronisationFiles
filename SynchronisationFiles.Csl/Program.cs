@@ -18,14 +18,13 @@ namespace SynchronisationFiles.Csl
                 string SynchronisationMethode = "OneWay"; //OneWay - TwoWaySourceWon - TwoWayTargetWon
 
 
-
                 SynchronisationService service = new SynchronisationService(SourceDirectoryPath, TargetDirectoryPath, SynchronisationMethode);
 
                 service.Start();
 
                 Loggers.WriteInformation($"Ecoute du répertoire {SourceDirectoryPath}");
                 Loggers.WriteInformation($"Ecoute du répertoire {TargetDirectoryPath}");
-                Console.ReadLine();
+                Console.ReadKey();
                 Loggers.WriteInformation($"Fin du programme.");
 
                 service.Stop();
