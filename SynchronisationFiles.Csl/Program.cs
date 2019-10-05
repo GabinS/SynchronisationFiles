@@ -17,7 +17,6 @@ namespace SynchronisationFiles.Csl
                 string TargetDirectoryPath = "C:\\temp\\DossierSecondaire";
                 string SynchronisationMethode = "TwoWaySourceWon"; //OneWay - TwoWaySourceWon - TwoWayTargetWon
 
-
                 SynchronisationService service = new SynchronisationService(SourceDirectoryPath, TargetDirectoryPath, SynchronisationMethode);
 
                 service.Start();

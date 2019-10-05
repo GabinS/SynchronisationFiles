@@ -103,6 +103,8 @@ namespace SynchronisationFiles.Core
             {
                 _IsRunning = true;
 
+                InitialiseSyncrhonisationFolder();
+
                 _WatcherSourceDirectory = new FileSystemWatcher(_SourceDirectoryPath);
                 _WatcherSourceDirectory.Created += _Watcher_Created;
                 _WatcherSourceDirectory.Renamed += _Watcher_Renamed;
@@ -121,8 +123,6 @@ namespace SynchronisationFiles.Core
                     _WatcherTargetDirectory.IncludeSubdirectories = true;
                     _WatcherTargetDirectory.EnableRaisingEvents = true;
                 }
-
-                InitialiseSyncrhonisationFolder();
             }
         }
 
@@ -179,7 +179,71 @@ namespace SynchronisationFiles.Core
         /// </summary>
         private void InitialiseSyncrhonisationFolder()
         {
-            //TODO Initialisation
+            SyncrhonisationFolder(_SourceDirectoryPath, _TargetDirectoryPath);
+            if (_SynchronisationMethode != "OneWay")
+            {
+                SyncrhonisationFolder(_TargetDirectoryPath, _SourceDirectoryPath);
+                Loggers.WriteInformation($"Synchronisation entre les répertoires '{_SourceDirectoryPath}' et '{_TargetDirectoryPath}' terminée");
+            }
+            else
+            {
+                Loggers.WriteInformation($"Synchronisation du répertoire '{_SourceDirectoryPath}' vers '{_TargetDirectoryPath}' terminée");
+            }
+        }
+
+        private void SyncrhonisationFolder(string path1, string path2)
+        {
+            DirectoryInfo directory = new DirectoryInfo(path1);
+            directory.GetFiles().ToList().ForEach(f => {
+                if (File.Exists($"{path2}\\{f.Name}"))
+                {
+                    if (!FileEquals(f.FullName, $"{path2}\\{f.Name}"))
+                    {
+                        Loggers.WriteInformation($"Modification du fichier '{f.Name}' dans {path2}");
+                        File.Delete($"{path2}\\{f.Name}");
+                        File.Copy(f.FullName, $"{path2}\\{f.Name}");
+                    }
+                }
+                else
+                {
+                    Loggers.WriteInformation($"Copie du fichier '{f.Name}' vers {path2}");
+                    File.Copy(f.FullName, $"{path2}\\{f.Name}");
+                }
+            });
+
+            directory.GetDirectories().ToList().ForEach(d => {
+                string targetDirectoryPath = d.FullName.Replace(path1, path2);
+                if (!Directory.Exists(targetDirectoryPath))
+                {
+                    Loggers.WriteInformation($"Création du dossier '{d.Name}' dans {path2}");
+                    Directory.CreateDirectory(targetDirectoryPath);
+                }
+                SyncrhonisationFolder(d.FullName, targetDirectoryPath);
+            });
+        }
+
+        /// <summary>
+        /// Compare le contenue de 2 fichiers 
+        /// </summary>
+        /// <param name="path1">chemin du premier fichier à comparer</param>
+        /// <param name="path2">chemin du deuxième fichier à comparer</param>
+        /// <returns>true si les 2 fichier sont identique</returns>
+        private bool FileEquals(string path1, string path2)
+        {
+            byte[] file1 = File.ReadAllBytes(path1);
+            byte[] file2 = File.ReadAllBytes(path2);
+            if (file1.Length == file2.Length)
+            {
+                for (int i = 0; i < file1.Length; i++)
+                {
+                    if (file1[i] != file2[i])
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
