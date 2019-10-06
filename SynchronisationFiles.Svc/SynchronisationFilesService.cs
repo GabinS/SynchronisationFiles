@@ -29,8 +29,8 @@ namespace SynchronisationFiles.Svc
         public SynchronisationFilesService()
         {
             InitializeComponent();
-
-            Loggers.AvaillableLoggers.Add(new ConsoleLogger() { IsInformationBypassed = true });
+            Loggers.AvaillableLoggers.Add(new FileLogger() { Source = @"C:\temp\log.txt"});
+            //Loggers.AvaillableLoggers.Add(new EventLogger());
         }
 
         #endregion
@@ -40,16 +40,17 @@ namespace SynchronisationFiles.Svc
 
         protected override void OnStart(string[] args)
         {
+
             try
             {
-                string inputDir = ConfigurationManager.AppSettings["SourceDirectoryPath"];
-                string outputDir = ConfigurationManager.AppSettings["TargetDirectoryPath"];
+                string sourceDirectoryPath = ConfigurationManager.AppSettings["SourceDirectoryPath"];
+                string targetDirectoryPath = ConfigurationManager.AppSettings["TargetDirectoryPath"];
                 string synchronisationMethode = ConfigurationManager.AppSettings["SynchronisationMethode"];
 
                 Loggers.WriteInformation(
-                $"Démarrage du service{Environment.NewLine}input = {inputDir}{Environment.NewLine}output = {outputDir}");
+                $"Démarrage du service{Environment.NewLine}Dossier source = {sourceDirectoryPath}{Environment.NewLine}Dossier cible = {targetDirectoryPath}");
 
-                _Service = new SynchronisationService(inputDir, outputDir, synchronisationMethode);
+                _Service = new SynchronisationService(sourceDirectoryPath, targetDirectoryPath, synchronisationMethode);
 
                 _Service.Start();
             }
@@ -63,6 +64,18 @@ namespace SynchronisationFiles.Svc
 
         protected override void OnStop()
         {
+            Loggers.WriteInformation($"Arrêt du service");
+            _Service?.Stop();
+        }
+        protected override void OnPause()
+        {
+            Loggers.WriteInformation($"Mise en pause du service");
+            _Service?.Pause();
+        }
+        protected override void OnContinue()
+        {
+            Loggers.WriteInformation($"Reprise du service");
+            _Service?.Resume();
         }
 
         #endregion

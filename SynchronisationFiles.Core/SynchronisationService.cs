@@ -45,8 +45,8 @@ namespace SynchronisationFiles.Core
         /// <summary>
         /// Initialise une nouvelle instance de la classe <see cref="SynchronisationService"/>.
         /// </summary>
-        /// <param name="SourceDirectoryPath">Dossier principale des fichiers à synchroniser.</param>
-        /// <param name="TargetDirectoryPath">Dossier secondaire des fichiers à synchroniser.</param>
+        /// <param name="SourceDirectoryPath">Dossier source des fichiers à synchroniser.</param>
+        /// <param name="TargetDirectoryPath">Dossier cible des fichiers à synchroniser.</param>
         public SynchronisationService(string SourceDirectoryPath, string TargetDirectoryPath, string SynchronisationMethode)
         {
 
@@ -103,7 +103,7 @@ namespace SynchronisationFiles.Core
             {
                 _IsRunning = true;
 
-                InitialiseSyncrhonisationFolder();
+                InitialiseSyncrhonisationDirectories();
 
                 _WatcherSourceDirectory = new FileSystemWatcher(_SourceDirectoryPath);
                 _WatcherSourceDirectory.Created += _Watcher_Created;
@@ -172,17 +172,17 @@ namespace SynchronisationFiles.Core
 
         #endregion
 
-        #region Core fx
+        #region Core
 
         /// <summary>
         /// Syncrhonise les deux répertoires en fonction de la méthode de synchronisation
         /// </summary>
-        private void InitialiseSyncrhonisationFolder()
+        private void InitialiseSyncrhonisationDirectories()
         {
-            SyncrhonisationFolder(_SourceDirectoryPath, _TargetDirectoryPath);
+            SyncrhonisationDirectories(_SourceDirectoryPath, _TargetDirectoryPath);
             if (_SynchronisationMethode != "OneWay")
             {
-                SyncrhonisationFolder(_TargetDirectoryPath, _SourceDirectoryPath);
+                SyncrhonisationDirectories(_TargetDirectoryPath, _SourceDirectoryPath);
                 Loggers.WriteInformation($"Synchronisation entre les répertoires '{_SourceDirectoryPath}' et '{_TargetDirectoryPath}' terminée");
             }
             else
@@ -191,9 +191,15 @@ namespace SynchronisationFiles.Core
             }
         }
 
-        private void SyncrhonisationFolder(string path1, string path2)
+        /// <summary>
+        /// Synchronise deux répertoires donnés
+        /// </summary>
+        /// <param name="path1">Chemin source</param>
+        /// <param name="path2">Chemin cible</param>
+        private void SyncrhonisationDirectories(string path1, string path2)
         {
             DirectoryInfo directory = new DirectoryInfo(path1);
+
             directory.GetFiles().ToList().ForEach(f => {
                 if (File.Exists($"{path2}\\{f.Name}"))
                 {
@@ -218,7 +224,7 @@ namespace SynchronisationFiles.Core
                     Loggers.WriteInformation($"Création du dossier '{d.Name}' dans {path2}");
                     Directory.CreateDirectory(targetDirectoryPath);
                 }
-                SyncrhonisationFolder(d.FullName, targetDirectoryPath);
+                SyncrhonisationDirectories(d.FullName, targetDirectoryPath);
             });
         }
 
@@ -247,6 +253,50 @@ namespace SynchronisationFiles.Core
         }
 
         /// <summary>
+        /// Active l'écoute des répertoires afin d'activer les événements
+        /// </summary>
+        private void ActivateWatchers()
+        {
+            if(!_WatcherSourceDirectory.EnableRaisingEvents) { _WatcherSourceDirectory.EnableRaisingEvents = true; }
+            if (!_WatcherTargetDirectory.EnableRaisingEvents) { _WatcherTargetDirectory.EnableRaisingEvents = true; }
+        }
+
+        /// <summary>
+        /// Inactive l'écoute des répertoires afin d'activer les événements
+        /// </summary>
+        private void InactivateWatchers()
+        {
+            if (_WatcherSourceDirectory.EnableRaisingEvents) { _WatcherSourceDirectory.EnableRaisingEvents = false; }
+            if (_WatcherTargetDirectory.EnableRaisingEvents) { _WatcherTargetDirectory.EnableRaisingEvents = false; }
+        }
+
+        /// <summary>
+        /// Retourne le chemin complet du repertoire ciblé
+        /// </summary>
+        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
+        /// <param name="e">Argument des événements.</param>
+        /// <returns>Chemin complet du répertoire cible</returns>
+        private string GetCurrentTagetDirectory(object sender, RenamedEventArgs e)
+        {
+            string path = e.FullPath.Replace($"\\{e.Name}", "");
+            return sender == _WatcherSourceDirectory ? path.Replace(_SourceDirectoryPath, _TargetDirectoryPath) : path.Replace(_TargetDirectoryPath, _SourceDirectoryPath);
+        }
+
+        /// <summary>
+        /// Retourne le chemin complet du repertoire ciblé
+        /// </summary>
+        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
+        /// <param name="e">Argument des événements.</param>
+        /// <returns>Chemin complet du répertoire cible</returns>
+        private string GetCurrentTagetDirectory(object sender, FileSystemEventArgs e)
+        {
+            string path = e.FullPath.Replace($"\\{e.Name}", "");
+            return sender == _WatcherSourceDirectory ? path.Replace(_SourceDirectoryPath, _TargetDirectoryPath) : path.Replace(_TargetDirectoryPath, _SourceDirectoryPath);
+        }
+
+        #region Events
+
+        /// <summary>
         /// Méthode appelée lorsqu'un fichier ou dossier est créé dans le répertoire.
         /// </summary>
         /// <param name="sender">Instance qui a déclenchée l'événement.</param>
@@ -267,7 +317,7 @@ namespace SynchronisationFiles.Core
                         Loggers.WriteInformation($"Copie du dossier '{e.Name}' vers {targetDirectory}");
                         Directory.CreateDirectory($"{targetDirectory}\\{e.Name}");
                         ActivateWatchers();
-                        
+
                     }
                     catch (Exception ex)
                     {
@@ -293,7 +343,7 @@ namespace SynchronisationFiles.Core
                     }
                 }
             }
-            
+
         }
 
         /// <summary>
@@ -338,7 +388,7 @@ namespace SynchronisationFiles.Core
                     }
                 }
             }
-                
+
         }
 
         /// <summary>
@@ -391,7 +441,7 @@ namespace SynchronisationFiles.Core
                 }
             }
 
-            
+
         }
 
         /// <summary>
@@ -421,47 +471,7 @@ namespace SynchronisationFiles.Core
             }
         }
 
-        /// <summary>
-        /// Active l'écoute des répertoires afin d'activer les événements
-        /// </summary>
-        private void ActivateWatchers()
-        {
-            if(!_WatcherSourceDirectory.EnableRaisingEvents) { _WatcherSourceDirectory.EnableRaisingEvents = true; }
-            if (!_WatcherTargetDirectory.EnableRaisingEvents) { _WatcherTargetDirectory.EnableRaisingEvents = true; }
-        }
-
-        /// <summary>
-        /// Inactive l'écoute des répertoires afin d'activer les événements
-        /// </summary>
-        private void InactivateWatchers()
-        {
-            if (_WatcherSourceDirectory.EnableRaisingEvents) { _WatcherSourceDirectory.EnableRaisingEvents = false; }
-            if (_WatcherTargetDirectory.EnableRaisingEvents) { _WatcherTargetDirectory.EnableRaisingEvents = false; }
-        }
-
-        /// <summary>
-        /// Retourne le chemin complet du repertoire ciblé
-        /// </summary>
-        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
-        /// <param name="e">Argument des événements.</param>
-        /// <returns>Chemin complet du répertoire cible</returns>
-        private string GetCurrentTagetDirectory(object sender, RenamedEventArgs e)
-        {
-            string path = e.FullPath.Replace($"\\{e.Name}", "");
-            return sender == _WatcherSourceDirectory ? path.Replace(_SourceDirectoryPath, _TargetDirectoryPath) : path.Replace(_TargetDirectoryPath, _SourceDirectoryPath);
-        }
-
-        /// <summary>
-        /// Retourne le chemin complet du repertoire ciblé
-        /// </summary>
-        /// <param name="sender">Instance qui a déclenchée l'événement.</param>
-        /// <param name="e">Argument des événements.</param>
-        /// <returns>Chemin complet du répertoire cible</returns>
-        private string GetCurrentTagetDirectory(object sender, FileSystemEventArgs e)
-        {
-            string path = e.FullPath.Replace($"\\{e.Name}", "");
-            return sender == _WatcherSourceDirectory ? path.Replace(_SourceDirectoryPath, _TargetDirectoryPath) : path.Replace(_TargetDirectoryPath, _SourceDirectoryPath);
-        }
+        #endregion
 
         #endregion
 
