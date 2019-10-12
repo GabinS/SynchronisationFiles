@@ -30,7 +30,13 @@ namespace SynchronisationFiles.Svc
         {
             InitializeComponent();
             Loggers.AvaillableLoggers.Add(new FileLogger() { Source = @"C:\temp\log.txt"});
-            //Loggers.AvaillableLoggers.Add(new EventLogger());
+
+            //Nécessite un démarrage en tant qu'administrateur afin de fonctionner correctement
+            Loggers.AvaillableLoggers.Add(new EventLogger()
+            {
+                Source = "SynchronisationFilesService",
+                Name = "SynchronisationFilesService"
+            });
         }
 
         #endregion
@@ -47,8 +53,9 @@ namespace SynchronisationFiles.Svc
                 string targetDirectoryPath = ConfigurationManager.AppSettings["TargetDirectoryPath"];
                 string synchronisationMethode = ConfigurationManager.AppSettings["SynchronisationMethode"];
 
-                Loggers.WriteInformation(
-                $"Démarrage du service{Environment.NewLine}Dossier source = {sourceDirectoryPath}{Environment.NewLine}Dossier cible = {targetDirectoryPath}");
+                Loggers.WriteInformation($"Démarrage du service");
+                Loggers.WriteInformation($"Dossier source = {sourceDirectoryPath}");
+                Loggers.WriteInformation($"Dossier cible = {targetDirectoryPath}");
 
                 _Service = new SynchronisationService(sourceDirectoryPath, targetDirectoryPath, synchronisationMethode);
 

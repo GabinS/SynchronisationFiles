@@ -201,19 +201,20 @@ namespace SynchronisationFiles.Core
             DirectoryInfo directory = new DirectoryInfo(path1);
 
             directory.GetFiles().ToList().ForEach(f => {
-                if (File.Exists($"{path2}\\{f.Name}"))
+                string targetPathName = $@"{path2}\{f.Name}";
+                if (File.Exists(targetPathName))
                 {
-                    if (!FileEquals(f.FullName, $"{path2}\\{f.Name}"))
+                    if (!FileEquals(f.FullName, targetPathName))
                     {
                         Loggers.WriteInformation($"Modification du fichier '{f.Name}' dans {path2}");
-                        File.Delete($"{path2}\\{f.Name}");
-                        File.Copy(f.FullName, $"{path2}\\{f.Name}");
+                        File.Delete(targetPathName);
+                        File.Copy(f.FullName, targetPathName);
                     }
                 }
                 else
                 {
                     Loggers.WriteInformation($"Copie du fichier '{f.Name}' vers {path2}");
-                    File.Copy(f.FullName, $"{path2}\\{f.Name}");
+                    File.Copy(f.FullName, targetPathName);
                 }
             });
 
@@ -278,7 +279,7 @@ namespace SynchronisationFiles.Core
         /// <returns>Chemin complet du répertoire cible</returns>
         private string GetCurrentTagetDirectory(object sender, RenamedEventArgs e)
         {
-            string path = e.FullPath.Replace($"\\{e.Name}", "");
+            string path = e.FullPath.Replace($@"\{e.Name}", "");
             return sender == _WatcherSourceDirectory ? path.Replace(_SourceDirectoryPath, _TargetDirectoryPath) : path.Replace(_TargetDirectoryPath, _SourceDirectoryPath);
         }
 
@@ -290,7 +291,7 @@ namespace SynchronisationFiles.Core
         /// <returns>Chemin complet du répertoire cible</returns>
         private string GetCurrentTagetDirectory(object sender, FileSystemEventArgs e)
         {
-            string path = e.FullPath.Replace($"\\{e.Name}", "");
+            string path = e.FullPath.Replace($@"\{e.Name}", "");
             return sender == _WatcherSourceDirectory ? path.Replace(_SourceDirectoryPath, _TargetDirectoryPath) : path.Replace(_TargetDirectoryPath, _SourceDirectoryPath);
         }
 
@@ -308,14 +309,15 @@ namespace SynchronisationFiles.Core
             //Si c'est un dossier
             if (Path.GetExtension(e.FullPath) == String.Empty)
             {
-                if (!Directory.Exists($"{targetDirectory}\\{e.Name}"))
+                if (!Directory.Exists($@"{targetDirectory}\{e.Name}"))
                 {
                     try
                     {
                         Loggers.WriteInformation($"Dossier créé : {e.FullPath}");
                         InactivateWatchers();
-                        Loggers.WriteInformation($"Copie du dossier '{e.Name}' vers {targetDirectory}");
-                        Directory.CreateDirectory($"{targetDirectory}\\{e.Name}");
+                        Loggers.WriteInformation($"Création du dossier '{e.Name}' vers {targetDirectory}");
+                        Directory.CreateDirectory($@"{targetDirectory}\{e.Name}");
+                        SyncrhonisationDirectories(e.FullPath, $@"{targetDirectory}\{e.Name}");
                         ActivateWatchers();
 
                     }
@@ -327,14 +329,14 @@ namespace SynchronisationFiles.Core
             }
             else
             {
-                if (!File.Exists($"{targetDirectory}\\{e.Name}"))
+                if (!File.Exists($@"{targetDirectory}\{e.Name}"))
                 {
                     try
                     {
                         Loggers.WriteInformation($"Fichier créé : {e.FullPath}");
                         InactivateWatchers();
                         Loggers.WriteInformation($"Copie du fichier '{e.Name}' vers {targetDirectory}");
-                        File.Copy(e.FullPath, $"{targetDirectory}\\{e.Name}");
+                        File.Copy(e.FullPath, $@"{targetDirectory}\{e.Name}");
                         ActivateWatchers();
                     }
                     catch (Exception ex)
@@ -358,13 +360,13 @@ namespace SynchronisationFiles.Core
             //Si c'est un dossier
             if (Path.GetExtension(e.FullPath) == String.Empty)
             {
-                if (Directory.Exists($"{targetDirectory}\\{e.OldName}"))
+                if (Directory.Exists($@"{targetDirectory}\{e.OldName}"))
                 {
                     try
                     {
                         Loggers.WriteInformation($"Dossier renommé: {e.FullPath}");
                         Loggers.WriteInformation($"Renomage du dossier '{e.OldName}' en '{e.Name}' dans {targetDirectory}");
-                        Directory.Move($"{targetDirectory}\\{e.OldName}", $"{targetDirectory}\\{e.Name}");
+                        Directory.Move($@"{targetDirectory}\{e.OldName}", $@"{targetDirectory}\{e.Name}");
                     }
                     catch (Exception ex)
                     {
@@ -374,13 +376,13 @@ namespace SynchronisationFiles.Core
             }
             else
             {
-                if (File.Exists($"{targetDirectory}\\{e.OldName}"))
+                if (File.Exists($@"{targetDirectory}\{e.OldName}"))
                 {
                     try
                     {
                         Loggers.WriteInformation($"Fichier renommé: {e.FullPath}");
                         Loggers.WriteInformation($"Renomage du fichier '{e.OldName}' en '{e.Name}' dans {targetDirectory}");
-                        File.Move($"{targetDirectory}\\{e.OldName}", $"{targetDirectory}\\{e.Name}");
+                        File.Move($@"{targetDirectory}\{e.OldName}", $@"{targetDirectory}\{e.Name}");
                     }
                     catch (Exception ex)
                     {
@@ -403,20 +405,15 @@ namespace SynchronisationFiles.Core
             //Si c'est un dossier
             if (Path.GetExtension(e.FullPath) == String.Empty)
             {
-                if (Directory.Exists($"{targetDirectory}\\{e.Name}"))
+                if (Directory.Exists($@"{targetDirectory}\{e.Name}"))
                 {
                     try
                     {
                         Loggers.WriteInformation($"Dossier supprimé: {e.FullPath}");
                         Loggers.WriteInformation($"Suppression du dossier '{e.Name}' dans {targetDirectory}");
-                        DirectoryInfo directory = new DirectoryInfo($"{targetDirectory}\\{e.Name}");
+                        DirectoryInfo directory = new DirectoryInfo($@"{targetDirectory}\{e.Name}");
 
-                        //Vide le contenue du dossier target avant de le supprimer
-                        directory.GetFiles().ToList().ForEach(f => f.Delete());
-                        directory.GetDirectories().ToList().ForEach(d => d.Delete(true));
-
-                        Directory.Delete($"{targetDirectory}\\{e.Name}");
-
+                        Directory.Delete($@"{targetDirectory}\{e.Name}", true);
                     }
                     catch (Exception ex)
                     {
@@ -426,13 +423,13 @@ namespace SynchronisationFiles.Core
             }
             else
             {
-                if (File.Exists($"{targetDirectory}\\{e.Name}"))
+                if (File.Exists($@"{targetDirectory}\{e.Name}"))
                 {
                     try
                     {
                         Loggers.WriteInformation($"Fichier supprimé: {e.FullPath}");
                         Loggers.WriteInformation($"Suppression du fichier '{e.Name}' dans {targetDirectory}");
-                        File.Delete($"{targetDirectory}\\{e.Name}");
+                        File.Delete($@"{targetDirectory}\{e.Name}");
                     }
                     catch (Exception ex)
                     {
@@ -453,15 +450,15 @@ namespace SynchronisationFiles.Core
         {
             string targetDirectory = GetCurrentTagetDirectory(sender, e);
 
-            if (File.Exists($"{targetDirectory}\\{e.Name}"))
+            if (File.Exists($@"{targetDirectory}\{e.Name}"))
             {
                 Loggers.WriteInformation($"Fichier modifié: {e.FullPath}");
                 try
                 {
                     InactivateWatchers();
                     Loggers.WriteInformation($"Modification du fichier '{e.Name}' dans {targetDirectory}");
-                    File.Delete($"{targetDirectory}\\{e.Name}");
-                    File.Copy(e.FullPath, $"{targetDirectory}\\{e.Name}");
+                    File.Delete($@"{targetDirectory}\{e.Name}");
+                    File.Copy(e.FullPath, $@"{targetDirectory}\{e.Name}");
                     ActivateWatchers();
                 }
                 catch (Exception ex)

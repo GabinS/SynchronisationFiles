@@ -13,14 +13,15 @@ namespace SynchronisationFiles.Csl
             {
                 Loggers.AvaillableLoggers.Add(new ConsoleLogger());
 
-                string SourceDirectoryPath = "C:\\temp\\DossierPrincipale";
-                string TargetDirectoryPath = "C:\\temp\\DossierSecondaire";
+                string SourceDirectoryPath = @"C:\temp\DossierPrincipale";
+                string TargetDirectoryPath = @"C:\temp\DossierSecondaire";
                 string SynchronisationMethode = "TwoWaySourceWon"; //OneWay - TwoWaySourceWon - TwoWayTargetWon
 
                 SynchronisationService service = new SynchronisationService(SourceDirectoryPath, TargetDirectoryPath, SynchronisationMethode);
 
                 service.Start();
 
+                Loggers.WriteInformation($"Démarrage du service");
                 Loggers.WriteInformation($"Ecoute du répertoire {SourceDirectoryPath}");
                 Loggers.WriteInformation($"Ecoute du répertoire {TargetDirectoryPath}");
                 Console.ReadKey();

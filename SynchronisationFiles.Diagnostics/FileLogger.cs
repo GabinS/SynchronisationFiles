@@ -15,7 +15,7 @@ namespace SynchronisationFiles.Diagnostics
 
         private void WriteMessage(string message, string prefix)
         {
-            File.AppendAllText(string.IsNullOrWhiteSpace(Source) ? ".\\log.txt" : Source, $"{prefix}[{DateTime.Now}] : {message}{Environment.NewLine}");
+            File.AppendAllText(string.IsNullOrWhiteSpace(Source) ? @".\log.txt" : Source, $"{prefix}[{DateTime.Now}] : {message}{Environment.NewLine}");
         }
 
         /// <summary>
